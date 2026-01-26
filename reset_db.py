@@ -6,6 +6,7 @@ from qdrant_client.http import models
 QDRANT_URL = "https://42cdf35b-ac5d-474a-a783-c96835d3e3cb.europe-west3-0.gcp.cloud.qdrant.io"
 QDRANT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.uimBBa-5yUfQF1EQa61Ikd-03AQKK9rNQ_h5VsIQmHw"
 COLLECTION_NAME = "finsmart_products"
+
 print(f"🔌 Tentative de connexion à : {QDRANT_URL}...")
 client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_KEY)
 

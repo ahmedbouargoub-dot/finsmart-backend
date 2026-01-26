@@ -25,7 +25,8 @@ def clean_price(price_str):
 def ingest_data():
     print("🔌 Connexion à votre Cluster Qdrant...")
     try:
-        client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_KEY)
+        # --- FIX 1: INCREASED TIMEOUT TO 60 SECONDS ---
+        client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_KEY, timeout=60.0)
         client.get_collections()
         print("✅ Connexion réussie !")
     except Exception as e:
@@ -35,12 +36,10 @@ def ingest_data():
     print("🧠 Chargement du Cerveau Local (CLIP)...")
     brain = FinsmartBrain()
 
-    # --- FIX IS HERE: Added quotes around "data" ---
     csv_files = glob.glob(os.path.join("data", "*.csv"))
 
     if not csv_files:
         print("⚠️ Aucun fichier CSV trouvé dans le dossier 'data/'")
-        print("   -> Créez un dossier 'data' et mettez vos fichiers .csv dedans.")
         return
 
     for file_path in csv_files:
@@ -73,13 +72,23 @@ def ingest_data():
             except Exception as e:
                 pass
 
-            if len(points) >= 50:
-                client.upsert(collection_name=COLLECTION_NAME, points=points)
-                print(f"📤 Paquet envoyé (Ligne {index})")
-                points = []
+                # --- FIX 2: SMALLER BATCH SIZE (32 instead of 50) ---
+            # This makes uploads lighter and faster, preventing timeouts
+            if len(points) >= 32:
+                try:
+                    client.upsert(collection_name=COLLECTION_NAME, points=points)
+                    print(f"📤 Paquet envoyé (Ligne {index})")
+                    points = []
+                except Exception as e:
+                    print(f"⚠️ Petit souci réseau (Upload), on réessaie le paquet... {e}")
+                    # Simple retry logic could go here, but usually smaller batches fix it.
 
         if points:
-            client.upsert(collection_name=COLLECTION_NAME, points=points)
+            try:
+                client.upsert(collection_name=COLLECTION_NAME, points=points)
+                print("📤 Dernier paquet envoyé.")
+            except Exception as e:
+                print(f"⚠️ Erreur sur le dernier paquet: {e}")
 
     print("🚀 Importation terminée vers Qdrant Cloud !")
 
